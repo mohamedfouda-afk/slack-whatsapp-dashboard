@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slack → WhatsApp Dashboard</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Login Page */
+    .login-page {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #667eea;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #764ba2;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: #e74c3c;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #fadbd8;
+      border-radius: 5px;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      padding: 20px 0;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      color: #667eea;
+      font-size: 24px;
+    }
+
+    .logout-btn {
+      background: #e74c3c;
+      padding: 8px 16px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    /* Dashboard Grid */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h2 {
+      margin-bottom: 20px;
+      color: #667eea;
+      font-size: 20px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    /* Rules Section */
+    .rules-list {
+      list-style: none;
+    }
+
+    .rule-item {
+      background: #f9f9f9;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rule-info {
+      flex: 1;
+    }
+
+    .rule-channel {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .rule-group {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .rule-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .rule-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .rule-toggle {
+      background: #27ae60;
+      color: white;
+    }
+
+    .rule-toggle.inactive {
+      background: #95a5a6;
+    }
+
+    .rule-delete {
+      background: #e74c3c;
+      color: white;
+    }
+
+    /* Add Rule Form */
+    .add-rule {
+      display: grid;
+      gap: 10px;
+    }
+
+    .add-rule input, .add-rule select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    /* Status */
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .status-item .service-name {
+      font-weight: 600;
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Logs */
+    .logs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .logs-table th {
+      background: #f0f0f0;
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .logs-table td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .logs-table tr:hover {
+      background: #f9f9f9;
+    }
+
+    .status-sent {
+      color: #27ae60;
+    }
+
+    .status-failed {
+      color: #e74c3c;
+    }
+
+    /* Loading & Messages */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .tab-navigation {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const API_URL = '';
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // LOGIN PAGE
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    function LoginPage({ onLogin }) {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+          const res = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            setError(data.error || 'Login failed');
+            return;
+          }
+
+          localStorage.setItem('token', data.token);
+          onLogin();
+        } catch (err) {
+          setError('Connection error: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="login-page">
+          <div className="login-box">
+            <h1>💬 Slack → WhatsApp</h1>
+            {error && <div className="error">{error}</div>}
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label>Email / Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+              <button className="btn" type="submit" disabled={loading}>
+                {loading ? '🔄 Logging in...' : '✅ Login'}
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MAIN DASHBOARD
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    function Dashboard({ onLogout }) {
+      const [tab, setTab] = useState('rules');
+      const [rules, setRules] = useState([]);
+      const [logs, setLogs] = useState([]);
+      const [status, setStatus] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [newRule, setNewRule] = useState({ slack_channel_id: '', slack_channel_name: '', whatsapp_group_name: '' });
+      const [message, setMessage] = useState('');
+
+      const token = localStorage.getItem('token');
+
+      useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 5000); // Refresh every 5 seconds
+        return () => clearInterval(interval);
+      }, []);
+
+      const fetchData = async () => {
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        try {
+          const [rulesRes, logsRes, statusRes] = await Promise.all([
+            fetch(`${API_URL}/api/rules`, { headers }),
+            fetch(`${API_URL}/api/logs?limit=50`, { headers }),
+            fetch(`${API_URL}/api/status`, { headers }),
+          ]);
+
+          if (rulesRes.ok) setRules(await rulesRes.json());
+          if (logsRes.ok) setLogs(await logsRes.json());
+          if (statusRes.ok) setStatus(await statusRes.json());
+        } catch (err) {
+          console.error('Fetch error:', err);
+        }
+      };
+
+      const addRule = async () => {
+        if (!newRule.slack_channel_id || !newRule.whatsapp_group_name) {
+          setMessage('❌ Please fill all fields');
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const res = await fetch(`${API_URL}/api/rules`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newRule),
+          });
+
+          if (res.ok) {
+            setMessage('✅ Rule created!');
+            setNewRule({ slack_channel_id: '', slack_channel_name: '', whatsapp_group_name: '' });
+            await fetchData();
+            setTimeout(() => setMessage(''), 3000);
+          }
+        } catch (err) {
+          setMessage('❌ Error: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const deleteRule = async (id) => {
+        if (!confirm('Delete this rule?')) return;
+
+        try {
+          const res = await fetch(`${API_URL}/api/rules/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+
+          if (res.ok) {
+            setMessage('✅ Rule deleted');
+            await fetchData();
+            setTimeout(() => setMessage(''), 3000);
+          }
+        } catch (err) {
+          setMessage('❌ Error: ' + err.message);
+        }
+      };
+
+      return (
+        <div className="container">
+          <div className="header">
+            <h1>📊 Slack ↔ WhatsApp Dashboard</h1>
+            <button className="logout-btn" onClick={onLogout}>
+              🚪 Logout
+            </button>
+          </div>
+
+          <div className="tab-navigation">
+            <button
+              className={`tab-btn ${tab === 'rules' ? 'active' : ''}`}
+              onClick={() => setTab('rules')}
+            >
+              📋 Rules ({rules.length})
+            </button>
+            <button
+              className={`tab-btn ${tab === 'logs' ? 'active' : ''}`}
+              onClick={() => setTab('logs')}
+            >
+              📝 Message Logs
+            </button>
+            <button
+              className={`tab-btn ${tab === 'status' ? 'active' : ''}`}
+              onClick={() => setTab('status')}
+            >
+              🔌 Status
+            </button>
+          </div>
+
+          {message && <div className="success">{message}</div>}
+
+          {tab === 'rules' && (
+            <div className="dashboard">
+              <div className="card">
+                <h2>➕ Create New Rule</h2>
+                <div className="add-rule">
+                  <input
+                    type="text"
+                    placeholder="Slack Channel ID (C...)"
+                    value={newRule.slack_channel_id}
+                    onChange={(e) =>
+                      setNewRule({ ...newRule, slack_channel_id: e.target.value })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Slack Channel Name"
+                    value={newRule.slack_channel_name}
+                    onChange={(e) =>
+                      setNewRule({ ...newRule, slack_channel_name: e.target.value })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="WhatsApp Group Name (exact name)"
+                    value={newRule.whatsapp_group_name}
+                    onChange={(e) =>
+                      setNewRule({ ...newRule, whatsapp_group_name: e.target.value })
+                    }
+                  />
+                  <button className="btn" onClick={addRule} disabled={loading}>
+                    {loading ? '⏳ Creating...' : '✅ Create Rule'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="card">
+                <h2>📌 Active Rules</h2>
+                <ul className="rules-list">
+                  {rules.map((rule) => (
+                    <li key={rule.id} className="rule-item">
+                      <div className="rule-info">
+                        <div className="rule-channel">
+                          #{rule.slack_channel_name}
+                        </div>
+                        <div className="rule-group">
+                          ↓ {rule.whatsapp_group_name}
+                        </div>
+                        <div className="rule-group">
+                          Status: {rule.is_active ? '✅ Active' : '⛔ Inactive'}
+                        </div>
+                      </div>
+                      <div className="rule-actions">
+                        <button
+                          className={`rule-delete`}
+                          onClick={() => deleteRule(rule.id)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                  {rules.length === 0 && (
+                    <div className="loading">No rules yet. Create one above!</div>
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {tab === 'logs' && (
+            <div className="card full-width">
+              <h2>📝 Message Forwarding Log</h2>
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Slack User</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.created_at).toLocaleString()}</td>
+                      <td>{log.slack_user}</td>
+                      <td style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {log.slack_message}
+                      </td>
+                      <td className={`status-${log.whatsapp_status}`}>
+                        {log.whatsapp_status === 'sent' ? '✅ Sent' : '❌ Failed'}
+                      </td>
+                    </tr>
+                  ))}
+                  {logs.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                        No messages logged yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {tab === 'status' && (
+            <div className="card">
+              <h2>🔌 Connection Status</h2>
+              <div style={{ marginTop: '20px' }}>
+                <div className="status-item">
+                  <span className="service-name">💬 Slack Bot</span>
+                  <span className="status-badge connected">✅ Connected</span>
+                </div>
+                <div className="status-item">
+                  <span className="service-name">📱 WhatsApp</span>
+                  <span className="status-badge connected">✅ Ready</span>
+                </div>
+                <div className="status-item">
+                  <span className="service-name">🌐 Server</span>
+                  <span className="status-badge connected">✅ Running</span>
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px', fontSize: '12px', color: '#666' }}>
+                <p>📊 Stats:</p>
+                <p>Active Rules: {rules.filter(r => r.is_active).length}</p>
+                <p>Messages Sent: {logs.filter(l => l.whatsapp_status === 'sent').length}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // APP ROOT
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    function App() {
+      const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+
+      const handleLogin = () => {
+        setIsLoggedIn(true);
+      };
+
+      const handleLogout = () => {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+      };
+
+      return isLoggedIn ? (
+        <Dashboard onLogout={handleLogout} />
+      ) : (
+        <LoginPage onLogin={handleLogin} />
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
